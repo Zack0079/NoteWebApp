@@ -1,14 +1,15 @@
 import express, { Router } from 'express';
-import { getUsers, getUserById, login } from '../controllers/userController.js';
+import userCtrl from '../controllers/userController.js';
 import { protect } from '../middleware/auth.js';
 
 const router: Router = express.Router();
 
 
 // Public route for login
-router.post('/login', login);
+router.post('/login', userCtrl.login);
 
-// Protected route (Only authorized users can see details)
-router.get('/:id', protect, getUserById);
+//check token is valid or not & reutn user details if valid
+router.get('/userAuth', userCtrl.userLoginAuthCheck);
+
 
 export default router;

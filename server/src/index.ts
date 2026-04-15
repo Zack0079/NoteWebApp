@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // 3. Routes
-app.use('/api/users', userRouter);
+app.use('/api/user', userRouter);
 
 app.get('/', (req, res) => {
   res.send('Welcome to the Note App API');

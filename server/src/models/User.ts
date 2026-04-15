@@ -1,4 +1,4 @@
-import mongoose, { type RawDocTypeHint } from 'mongoose';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 

@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import RefreshToken from '../models/RefreshToken.js';
 import config from '../config/config.js';
+import { ref } from 'node:process';
 
 type loginRequestBody = {
   email: string;
@@ -16,6 +17,9 @@ const cookieOptions = {
   sameSite: 'lax' as const,
 };
 
+const accessTokenExpiry = config.accessTokenExpiry;
+const refreshTokenExpiry = config.refreshTokenExpiry;
+const updateRefreshTokenLimit = config.updateRefreshTokenLimit;
 
 const login = async (req: Request, res: Response) => {
   try {
@@ -43,10 +47,10 @@ const login = async (req: Request, res: Response) => {
     const accessToken = jwt.sign({ id: user._id }, config.accessSecret, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id }, config.refreshSecret, { expiresIn: '2h' });
 
-    await RefreshToken.create({ token: refreshToken, userId: user._id, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
+    await RefreshToken.create({ token: refreshToken, userId: user._id, expiresAt: new Date(Date.now() + refreshTokenExpiry * 1000) });
 
-    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 2 * 60 * 60 * 1000 });
-    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 60 * 60 * 1000 });
+    res.cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: refreshTokenExpiry * 1000 });
+    res.cookie('accessToken', accessToken, { ...cookieOptions, maxAge: accessTokenExpiry * 1000 });
 
     res.json({
       user: {
@@ -92,14 +96,14 @@ const userLoginAuthCheck = async (req: Request, res: Response) => {
 
       // 4. generate new Access Token and send to client
       const newAccessToken = jwt.sign({ id: refreshPayload.id }, config.accessSecret, { expiresIn: '1h' });
-      res.cookie('accessToken', newAccessToken, { ...cookieOptions, maxAge: 60 * 60 * 1000 });
+      res.cookie('accessToken', newAccessToken, { ...cookieOptions, maxAge: accessTokenExpiry * 1000 });
 
       // 5. check refesh token is less than 1 hour to expire and generater new refresh token if so
       if (new Date(saveToken.expiresAt).getTime() < Date.now() + oneHourInMs) {
         const newRefreshToken = jwt.sign({ id: refreshPayload.id }, config.refreshSecret, { expiresIn: '2h' });
         await RefreshToken.deleteOne({ _id: saveToken._id });
-        await RefreshToken.create({ token: newRefreshToken, userId: refreshPayload.id, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
-        res.cookie('refreshToken', newRefreshToken, { ...cookieOptions, maxAge: 2 * 60 * 60 * 1000 });
+        await RefreshToken.create({ token: newRefreshToken, userId: refreshPayload.id, expiresAt: new Date(Date.now() + refreshTokenExpiry * 1000) });
+        res.cookie('refreshToken', newRefreshToken, { ...cookieOptions, maxAge: refreshTokenExpiry * 1000 });
       }
 
       // 6. get user details and send to client

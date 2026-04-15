@@ -14,9 +14,19 @@ export default function Login() {
     const handleLogin = async () => {
         const res = await userLogin(email, password);
         console.log(res)
+        if (res.success) {
+            sessionStorage.setItem('username', res.user.username);
+            sessionStorage.setItem('userId', res.user.id);
+            sessionStorage.setItem('email', res.user.email);
+
+            redirect('/dashboard');
+        } else {
+            setAlertMessage(res.message);
+        }
+
     };
 
-  
+
     return (
         <div className=" min-h-screen">
 
